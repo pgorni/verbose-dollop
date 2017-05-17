@@ -8,7 +8,6 @@ class UsersController < ApplicationController
 
     # GET /user/:id
     def show
-        #render json: User.find(params[:id]), status: :ok
 
         if User.exists?(params[:id])
             render json: User.find(params[:id]), status: :ok
@@ -19,17 +18,17 @@ class UsersController < ApplicationController
     end
 
     def create
-        @new_user = User.new(params.permit(:name, :surname, :hobby))
-        auth_data = params.permit(:uuid, :secret_token)
+        new_user = User.new(params.permit(:name, :surname, :hobby))
+        set_auth_data
         @error = {}
 
-        if auth(auth_data)
+        if auth
             # check user
-            if @new_user.valid?
-                @new_user.save
-                render json: {result: "User created.", user: @new_user.as_json}, status: :created
+            if new_user.valid?
+                new_user.save
+                render json: {result: "User created.", user: new_user.as_json}, status: :created
             else
-                render json: {error: "User invalid.", messages: @new_user.errors.messages}, status: 422
+                render json: {error: "User invalid.", messages: new_user.errors.messages}, status: 422
             end
         else
             # this will be an error of some kind
@@ -38,17 +37,44 @@ class UsersController < ApplicationController
     end
 
     def update
-        auth_data = params.permit(:uuid, :secret_token)
+        set_auth_data
 
-        if auth(auth_data)
-            # update user data
-            new_user_data = params.permit(:id, :name, :surname, :hobby)
-            user_handler = User.find(new_user_data[:id])
-            user_handler.name = new_user_data[:name]
-            user_handler.surname = new_user_data[:surname]
-            user_handler.hobby = new_user_data[:hobby]
-            user_handler.save
-            render json: {result: "User modified."}, status: :ok
+        if auth
+            if User.exists?(params[:id])
+                
+                new_user_data = params.permit(:name, :surname, :hobby)
+
+                unless new_user_data.empty?
+                    # update user data
+                    user = User.find(params[:id])
+                    user.update(new_user_data.to_hash)
+                    user.save
+                    render json: {result: "User modified."}, status: :ok
+                else
+                    # don't update user data; new user data hasn't been given
+                    render json: {error: "User not modified - no data given."}, status: :bad_request
+                end
+                
+            else
+                render json: {error: "User not found."}, status: :not_found
+            end
+        else
+            # this will be an error of some kind
+            render json: @error, status: :forbidden
+        end
+
+    end
+
+    def destroy
+        set_auth_data
+
+        if auth
+            if User.exists?(params[:id])
+                User.destroy(params[:id])
+                render json: {result: "User deleted."}, status: :ok
+            else
+                render json: {error: "User not found."}, status: :not_found
+            end
         else
             # this will be an error of some kind
             render json: @error, status: :forbidden
@@ -58,14 +84,14 @@ class UsersController < ApplicationController
 
     private
 
-    def auth(auth_data)
+    def auth
 
         # this will serve as a shorthand to checking completeness
-        auth_data_db_entry = AuthToken.new(auth_data)
+        auth_data_db_entry = AuthToken.new(@auth_data)
 
         if auth_data_db_entry.valid? # in terms of completeness
             # we can look up if there's such an entry in the DB
-            unless AuthToken.find_by(auth_data).nil?
+            unless AuthToken.find_by(@auth_data).nil?
                 return true
             else
                 # the auth data is complete, but invalid
@@ -77,6 +103,10 @@ class UsersController < ApplicationController
             @error = {error: "Auth data incomplete.", messages: auth_data_db_entry.errors.messages}
             return false
         end
+    end
+
+    def set_auth_data
+        @auth_data = params.permit(:uuid, :secret_token)
     end
 
 end
