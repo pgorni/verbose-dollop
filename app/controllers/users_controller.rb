@@ -19,8 +19,8 @@ class UsersController < ApplicationController
     end
 
     def create
-        @new_user = User.new(params.require(:user).permit(:name, :surname, :hobby))
-        auth_data = params.require(:auth).permit(:uuid, :secret_token)
+        @new_user = User.new(params.permit(:name, :surname, :hobby))
+        auth_data = params.permit(:uuid, :secret_token)
         @error = {}
 
         if auth(auth_data)
@@ -35,8 +35,24 @@ class UsersController < ApplicationController
             # this will be an error of some kind
             render json: @error, status: :forbidden
         end
-        
-        
+    end
+
+    def update
+        auth_data = params.permit(:uuid, :secret_token)
+
+        if auth(auth_data)
+            # update user data
+            new_user_data = params.permit(:id, :name, :surname, :hobby)
+            user_handler = User.find(new_user_data[:id])
+            user_handler.name = new_user_data[:name]
+            user_handler.surname = new_user_data[:surname]
+            user_handler.hobby = new_user_data[:hobby]
+            user_handler.save
+            render json: {result: "User modified."}, status: :ok
+        else
+            # this will be an error of some kind
+            render json: @error, status: :forbidden
+        end
 
     end
 

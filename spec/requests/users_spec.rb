@@ -5,8 +5,10 @@ RSpec.describe "User API", :type => :request do
   # :users is a list of 10 users created with FactoryGirl
   # has to be "create_list" because we need them to have IDs
   let!(:users) { create_list(:user, 10) }
-  # This user definitely exists
+  # This user ID definitely exists
   let(:user_id) { users.first.id }
+
+  let(:example_user) {users.first}
 
   # I need some existing auth_tokens
   let!(:auth_tokens) {create_list(:auth_token, 10)}
@@ -32,7 +34,8 @@ RSpec.describe "User API", :type => :request do
 
     context 'when everything is fine and the user is created' do
       valid_user = {name: Faker::Name.first_name, surname: Faker::Name.last_name, hobby: Faker::Beer.name}
-      before { post '/users', params: {user: valid_user, auth: existing_auth_token} }
+      #before { post '/users', params: {user: valid_user, auth: existing_auth_token} }
+      before { post '/users', params: valid_user.merge(existing_auth_token) }
 
       it 'creates an user' do
         json = JSON.parse(response.body)
@@ -46,7 +49,7 @@ RSpec.describe "User API", :type => :request do
 
     context 'when the user is invalid' do
       invalid_user = {name: Faker::Name.first_name, hobby: Faker::Beer.name}
-      before { post '/users', params: {user: invalid_user, auth: existing_auth_token} }
+      before { post '/users', params: invalid_user.merge(existing_auth_token)}
 
       it 'returns HTTP 422' do
         expect(response).to have_http_status(422)
@@ -61,7 +64,7 @@ RSpec.describe "User API", :type => :request do
     context 'when the user is valid, but auth is incomplete' do
       valid_user = {name: Faker::Name.first_name, surname: Faker::Name.last_name, hobby: Faker::Beer.name}
       # There is uuid, but no secret_token
-      before {post '/users', params: {user: valid_user, auth: {uuid: SecureRandom.uuid}}}
+      before {post '/users', params: valid_user.merge({uuid: SecureRandom.uuid})}
 
       it 'returns 403 Forbidden' do
         expect(response).to have_http_status(403)
@@ -77,7 +80,7 @@ RSpec.describe "User API", :type => :request do
     context 'when the user is valid, but auth is invalid' do
       valid_user = {name: Faker::Name.first_name, surname: Faker::Name.last_name, hobby: Faker::Beer.name}
       let(:existing_auth_token) { {uuid: SecureRandom.uuid, secret_token: "There's no way such a token could exist."} }
-      before { post '/users', params: {user: valid_user, auth: existing_auth_token} }
+      before { post '/users', params: valid_user.merge(existing_auth_token) }
 
       it 'returns 403 Forbidden' do
         expect(response).to have_http_status(403)
@@ -92,7 +95,50 @@ RSpec.describe "User API", :type => :request do
   end
 
   describe 'PUT /user/:id' do
-    
+
+    new_user_data = {name: "New", surname: "Guy", hobby: "hardcoded strings"}
+
+    context 'when everything is fine and the record is modified' do
+
+      before do
+        put "/users/#{user_id}", params: new_user_data.merge(existing_auth_token)
+      end
+
+      it 'returns HTTP 200 OK' do
+        expect(response).to have_http_status(200)
+      end
+
+      it 'changes the user data' do
+        expect(User.find(user_id).name).to eq(new_user_data[:name])
+        expect(User.find(user_id).surname).to eq(new_user_data[:surname])
+        expect(User.find(user_id).hobby).to eq(new_user_data[:hobby])
+      end
+
+    end
+
+    context 'when the auth is invalid' do
+
+      let(:existing_auth_token) { {uuid: SecureRandom.uuid, secret_token: "There's no way such a token could exist."} }
+
+      before do
+        put "/users/#{user_id}", params: new_user_data.merge(existing_auth_token)
+      end
+
+      it 'returns HTTP 403 Forbidden' do
+        expect(response).to have_http_status(403)
+      end
+
+      it 'does not change user data' do
+        expect(User.find(user_id).name).not_to eq(new_user_data[:name])
+        expect(User.find(user_id).surname).not_to eq(new_user_data[:surname])
+        expect(User.find(user_id).hobby).not_to eq(new_user_data[:hobby])
+      end
+
+    end
+
+    context 'when bad data is supplied' do
+    end
+
   end
 
   describe 'GET /users/:id' do
