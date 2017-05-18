@@ -10,19 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170514134147) do
+ActiveRecord::Schema.define(version: 20170518170651) do
 
   create_table "auth_tokens", id: false, force: :cascade do |t|
     t.string "uuid", limit: 36, null: false
-    t.string "secret_token"
+    t.string "secret_token", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "name"
-    t.string "surname"
-    t.string "hobby"
+    t.string "name", null: false
+    t.string "surname", null: false
+    t.string "hobby", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
