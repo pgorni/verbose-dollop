@@ -1,24 +1,26 @@
-# README
+### Starting the application
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+To install the required gems and dependencies: 
+```
+bundle install
+```
 
-Things you may want to cover:
+Then, you have to create a database. You can do so with the following command by loading the database schema `(db/schema.rb)`:
+```
+RAILS_ENV=production rails db:schema:load
+```
 
-* Ruby version
+Rails' `production` environment requires the existence of a secret token. It's often saved as an environment (as in *the OS environment*) variable. You have to use the following command:
+```
+RAILS_ENV=production rake secret
+```
+to get the code, copy it and set it as one of the OS environment variables with:
+```
+export SECRET_KEY_BASE=<generated_code>
+```
+Now, you should be able to run the application with:
+```
+rails s -e="production"
+```
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+The application was written in Rails 5.1.1 on Ruby 2.3.3. It uses `rspec` as its testing suite. Should you want to run tests, you can do so with the following command: `bundle exec rspec`.
