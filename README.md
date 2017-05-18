@@ -5,9 +5,9 @@ To install the required gems and dependencies:
 bundle install
 ```
 
-Then, you have to create a database. You can do so with the following command by loading the database schema `(db/schema.rb)`:
+Then, you have to create a database. You can do so with the following command:
 ```
-RAILS_ENV=production rails db:schema:load
+RAILS_ENV=production rails db:setup
 ```
 
 Rails' `production` environment requires the existence of a secret token. It's often saved as an environment (as in *the OS environment*) variable. You have to use the following command:
